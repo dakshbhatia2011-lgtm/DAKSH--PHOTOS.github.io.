@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>DAKSH STUDIO — Photography & Photo Editing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+  <!-- Tiny EXIF reader (from CDN). If offline, EXIF will be skipped gracefully. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <style>
+    /* ===================== ROOT & RESET ===================== */
+    *,*::before,*::after{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--text); background:var(--bg); overflow-x:hidden}
+    :root{
+      --bg:#0b1020; --surface:rgba(255,255,255,.05); --surface-strong:rgba(255,255,255,.12);
+      --text:#e5e7eb; --muted:#a0a7b4; --primary:#22d3ee; --accent:#a78bfa; --ring:rgba(167,139,250,.4);
+      --radius:18px; --shadow:0 22px 50px rgba(0,0,0,.45);
+      --gradient: radial-gradient(1200px 600px at 10% -10%, rgba(167,139,250,.28), transparent 45%), radial-gradient(900px 500px at 90% 10%, rgba(34,211,238,.22), transparent 45%), radial-gradient(1200px 600px at 50% 80%, rgba(34,197,94,.12), transparent 50%);
+    }
+    [data-theme="light"]{ --bg:#f7fafc; --surface:rgba(0,0,0,.04); --surface-strong:rgba(0,0,0,.1); --text:#0b1020; --muted:#475569; --shadow:0 12px 28px rgba(2,6,23,.15); --gradient: radial-gradient(1200px 600px at 10% -10%, rgba(167,139,250,.12), transparent 45%), radial-gradient(900px 500px at 90% 10%, rgba(34,211,238,.1), transparent 45%), radial-gradient(1200px 600px at 50% 80%, rgba(34,197,94,.08), transparent 50%);} 
+    .container{width:min(1200px,92vw); margin:0 auto}
+    .grid{display:grid; gap:1.1rem}
+    .card{background:rgba(17,24,39,.55); border:1px solid var(--surface-strong); border-radius:var(--radius); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+    [data-theme="light"] .card{background:rgba(255,255,255,.7)}
+    .title{font-family:'Playfair Display',serif; font-weight:800; letter-spacing:.3px; line-height:1.05}
+    .kicker{text-transform:uppercase; font-weight:900; font-size:.8rem; letter-spacing:.28em; color:var(--primary)}
+    .subtitle{color:var(--muted)}
+    .btn{display:inline-flex; align-items:center; gap:.6rem; padding:.9rem 1.2rem; border-radius:14px; border:1px solid var(--surface-strong); cursor:pointer; font-weight:800; letter-spacing:.2px; background:linear-gradient(135deg,var(--accent),#6ee7f3); color:#0b1020; box-shadow:0 10px 24px rgba(167,139,250,.35); transition:transform .18s,filter .18s,box-shadow .18s}
+    .btn:hover{transform:translateY(-2px); filter:brightness(1.05); box-shadow:0 14px 28px rgba(167,139,250,.45)}
+    .btn-outline{background:transparent; color:var(--text); border:2px solid var(--surface-strong); box-shadow:none}
+    .pill{border-radius:999px; padding:.35rem .7rem; background:var(--surface); border:1px solid var(--surface-strong)}
+
+    /* ===================== BACKGROUND ART ===================== */
+    .bg-wrap{position:fixed; inset:0; z-index:-2; background:var(--gradient)}
+    #stars{position:fixed; inset:0; z-index:-1; pointer-events:none}
+
+    /* ===================== NAV ===================== */
+    nav{position:sticky; top:0; z-index:50; background:linear-gradient(to bottom, rgba(0,0,0,.5), transparent); backdrop-filter:blur(8px)}
+    .nav-inner{display:flex; align-items:center; justify-content:space-between; padding:.75rem 0}
+    .logo{display:flex; align-items:center; gap:.6rem; font-weight:900}
+    .logo svg{width:28px;height:28px}
+    .nav-links{display:flex; gap:.6rem; flex-wrap:wrap}
+    .nav-links a{color:var(--text); text-decoration:none; padding:.5rem .8rem; border-radius:12px; border:1px solid transparent}
+    .nav-links a:hover{border-color:var(--surface-strong)}
+
+    /* ===================== HERO ===================== */
+    header.hero{padding:7rem 0 4.5rem}
+    .hero .title{font-size:clamp(2.4rem,5vw,4.8rem); background:linear-gradient(92deg,#fff,#e5e7eb,#22d3ee,#a78bfa,#fff); -webkit-background-clip:text; background-clip:text; color:transparent; animation:shine 12s linear infinite}
+    .hero .lead{font-size:clamp(1.05rem,1.6vw,1.25rem); color:var(--muted); max-width:72ch}
+    .hero-cta{display:flex; gap:.8rem; flex-wrap:wrap; margin-top:1rem}
+    @keyframes shine{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+
+    /* ===================== SECTIONS ===================== */
+    section{padding:4.5rem 0; position:relative}
+    .section-head{display:flex; flex-direction:column; gap:.35rem; margin-bottom:2rem}
+
+    /* ===================== SERVICES ===================== */
+    .services{grid-template-columns:repeat(3,1fr)}
+    @media(max-width:1000px){.services{grid-template-columns:1fr 1fr}}
+    @media(max-width:700px){.services{grid-template-columns:1fr}}
+    .service{padding:1.1rem}
+
+    /* ===================== PORTFOLIO (Masonry) ===================== */
+    .filter-bar{display:flex; gap:.5rem; flex-wrap:wrap}
+    .filters button{padding:.6rem .9rem}
+    .masonry{column-count:4; column-gap:1rem}
+    @media(max-width:1100px){.masonry{column-count:3}}
+    @media(max-width:800px){.masonry{column-count:2}}
+    @media(max-width:560px){.masonry{column-count:1}}
+    .shot{break-inside:avoid; margin:0 0 1rem; position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--surface-strong); box-shadow:var(--shadow)}
+    .shot img{width:100%; display:block; filter:saturate(1.05) contrast(1.04); transition:transform .5s ease}
+    .shot:hover img{transform:scale(1.05)}
+    .shot .meta{position:absolute; inset:auto 8px 8px 8px; background:rgba(0,0,0,.45); backdrop-filter:blur(6px); border:1px solid var(--surface-strong); border-radius:12px; padding:.5rem .6rem; display:flex; justify-content:space-between; gap:.6rem}
+
+    /* ===================== LIGHTBOX ===================== */
+    .lightbox{position:fixed; inset:0; background:rgba(0,0,0,.8); display:none; align-items:center; justify-content:center; z-index:60}
+    .lightbox.open{display:flex}
+    .lightbox-inner{max-width:min(95vw,1200px); max-height:90vh; display:grid; grid-template-rows:auto auto; gap:.6rem}
+    .lightbox img{max-width:100%; max-height:70vh; border-radius:14px}
+    .lightbox .bar{display:flex; justify-content:space-between; align-items:center; gap:.6rem}
+
+    /* ===================== BEFORE/AFTER ===================== */
+    .ba-wrap{position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--surface-strong)}
+    .ba-wrap img{display:block; width:100%}
+    .ba-after{position:absolute; inset:0; width:50%; overflow:hidden}
+    .ba-slider{position:absolute; left:50%; top:0; bottom:0; width:2px; background:linear-gradient(#22d3ee,#a78bfa)}
+    .ba-handle{position:absolute; left:calc(50% - 18px); top:50%; transform:translateY(-50%); width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#22d3ee); border:2px solid var(--surface-strong); box-shadow:var(--shadow)}
+    .range{width:100%}
+
+    /* ===================== EDITOR ===================== */
+    .editor-grid{grid-template-columns:1fr 1fr}
+    @media(max-width:900px){.editor-grid{grid-template-columns:1fr}}
+    canvas.editor{width:100%; height:auto; background:#111827; border-radius:14px; border:1px solid var(--surface-strong)}
+    .controls{display:grid; grid-template-columns:1fr 1fr; gap:.8rem}
+    @media(max-width:700px){.controls{grid-template-columns:1fr}}
+    .controls label{display:grid; gap:.35rem}
+    input[type=range]{width:100%}
+
+    /* ===================== PRICING ===================== */
+    .pricing{grid-template-columns:repeat(3,1fr)}
+    @media(max-width:900px){.pricing{grid-template-columns:1fr}}
+    .plan{padding:1.2rem; position:relative; overflow:hidden}
+    .plan.highlight{outline:2px solid var(--primary); box-shadow:0 0 0 8px rgba(34,211,238,.12)}
+    .price{font-size:2.2rem; font-weight:900}
+
+    /* ===================== TESTIMONIALS ===================== */
+    .carousel{position:relative; overflow:hidden}
+    .slides{display:flex; transition:transform .6s ease}
+    .slide{min-width:100%; padding:1rem}
+
+    /* ===================== BLOG ===================== */
+    .blog{grid-template-columns:repeat(3,1fr)}
+    @media(max-width:1000px){.blog{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:700px){.blog{grid-template-columns:1fr}}
+
+    /* ===================== BOOKING ===================== */
+    form{display:grid; gap:.9rem}
+    input,textarea,select{width:100%; background:var(--surface); border:1px solid var(--surface-strong); color:var(--text); border-radius:14px; padding:.9rem 1rem; outline:none}
+    input:focus,textarea:focus,select:focus{border-color:var(--ring); box-shadow:0 0 0 4px var(--ring)}
+
+    /* ===================== FOOTER & FLOATERS ===================== */
+    footer{padding:3rem 0; color:var(--muted)}
+    .theme-toggle,.to-top{position:fixed; right:16px; z-index:60}
+    .theme-toggle{bottom:16px}
+    .to-top{bottom:76px; opacity:0; pointer-events:none; transition:opacity .25s ease}
+    .to-top.visible{opacity:1; pointer-events:auto}
+
+    /* ===================== PROGRESS ===================== */
+    .progress{position:fixed; inset:0 0 auto 0; height:4px; background:linear-gradient(90deg,#22d3ee,#a78bfa); transform-origin:0 50%; transform:scaleX(0); z-index:70}
+  </style>
+</head>
+<body>
+  <div class="bg-wrap"></div>
+  <canvas id="stars"></canvas>
+  <div class="progress" id="progress"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container nav-inner">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16v10H4z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>DAKSH STUDIO</span>
+      </div>
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#services">Services</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#editor">Photo Editor</a>
+        <a href="#beforeafter">Before/After</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#testimonials">Testimonials</a>
+        <a href="#blog">Blog</a>
+        <a href="#booking">Booking</a>
+        <a href="#faq">FAQ</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header id="home" class="hero container">
+    <span class="kicker">Photography • Retouching • Creative Studio</span>
+    <h1 class="title" id="typing">Cinematic photographs. Powerful edits. Zero compromises.</h1>
+    <p class="lead">From fashion editorials to wildlife adventures, I capture stories with light and elevate them with precise, respectful editing. Explore a massive showcase, live photo editor, before/after reveals, EXIF insights, and a booking system — all in this single file.</p>
+    <div class="hero-cta">
+      <a class="btn" href="#portfolio">View Portfolio ▶</a>
+      <a class="btn btn-outline" href="#editor">Try Live Editor</a>
+      <span class="pill">Light/Dark theme • Smooth scroll • Keyboard shortcuts</span>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(4,1fr); margin-top:1.2rem">
+      <div class="card" style="padding:1rem; text-align:center">
+        <div style="font-size:2rem; font-weight:900" data-counter="350">0</div>
+        <div class="subtitle">Projects delivered</div>
+      </div>
+      <div class="card" style="padding:1rem; text-align:center">
+        <div style="font-size:2rem; font-weight:900" data-counter="120">0</div>
+        <div class="subtitle">Happy clients</div>
+      </div>
+      <div class="card" style="padding:1rem; text-align:center">
+        <div style="font-size:2rem; font-weight:900" data-counter="25">0</div>
+        <div class="subtitle">Awards & features</div>
+      </div>
+      <div class="card" style="padding:1rem; text-align:center">
+        <div style="font-size:2rem; font-weight:900" data-counter="1">0</div>
+        <div class="subtitle">Copy‑paste website</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- SERVICES -->
+  <section id="services" class="container">
+    <div class="section-head">
+      <span class="kicker">What I Do</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Premium Photography & Editing Services</h2>
+      <p class="subtitle">On‑location shoots, studio lighting, color grading, retouching, AI‑assisted cleanup, and album design.</p>
+    </div>
+    <div class="grid services" data-reveal>
+      <div class="service card">
+        <h3>Portrait & Fashion</h3>
+        <p class="subtitle">Cinematic portraits, editorial looks, and advanced skin retouching with natural texture.</p>
+      </div>
+      <div class="service card">
+        <h3>Event & Wedding</h3>
+        <p class="subtitle">Full‑day coverage, storytelling albums, and elegant color consistency across galleries.</p>
+      </div>
+      <div class="service card">
+        <h3>Product & Food</h3>
+        <p class="subtitle">Crisp light setups, focus stacking, dust cleanup, and social‑ready exports.</p>
+      </div>
+      <div class="service card">
+        <h3>Landscape & Wildlife</h3>
+        <p class="subtitle">Golden‑hour drama, HDR blending, noise control, and moodful color science.</p>
+      </div>
+      <div class="service card">
+        <h3>Restoration</h3>
+        <p class="subtitle">Old photo repair, crease removal, colorization (tasteful), and print prep.</p>
+      </div>
+      <div class="service card">
+        <h3>Mentoring</h3>
+        <p class="subtitle">1‑on‑1 sessions on composition, RAW workflow, and retouching best practices.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO FILTERS -->
+  <section id="portfolio" class="container">
+    <div class="section-head">
+      <span class="kicker">Portfolio</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Signature Shots</h2>
+      <p class="subtitle">Filter by category and open the lightbox. Use ←/→ to navigate, ESC to close.</p>
+    </div>
+    <div class="filter-bar">
+      <div class="filters">
+        <button class="btn btn-outline" data-filter="all">All</button>
+        <button class="btn btn-outline" data-filter="portrait">Portrait</button>
+        <button class="btn btn-outline" data-filter="fashion">Fashion</button>
+        <button class="btn btn-outline" data-filter="wedding">Wedding</button>
+        <button class="btn btn-outline" data-filter="product">Product</button>
+        <button class="btn btn-outline" data-filter="landscape">Landscape</button>
+        <button class="btn btn-outline" data-filter="wildlife">Wildlife</button>
+      </div>
+    </div>
+    <div class="masonry" id="grid" data-reveal>
+      <!-- Shots (replace src with your images) -->
+      <figure class="shot" data-cat="portrait fashion"><img loading="lazy" alt="Portrait" src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Portrait • 85mm f/1.8</span><span class="pill">RAW→Edit</span></figcaption></figure>
+      <figure class="shot" data-cat="wedding"><img loading="lazy" alt="Wedding" src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Wedding • 35mm</span><span class="pill">Color Grade</span></figcaption></figure>
+      <figure class="shot" data-cat="product"><img loading="lazy" alt="Product" src="https://images.unsplash.com/photo-1511385348-a52b4a160dc2?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Product • Studio</span><span class="pill">Retouch</span></figcaption></figure>
+      <figure class="shot" data-cat="landscape"><img loading="lazy" alt="Mountains" src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Landscape • 16mm</span><span class="pill">HDR Blend</span></figcaption></figure>
+      <figure class="shot" data-cat="wildlife"><img loading="lazy" alt="Wildlife" src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Wildlife • 400mm</span><span class="pill">Noise Ctrl</span></figcaption></figure>
+      <figure class="shot" data-cat="fashion"><img loading="lazy" alt="Fashion" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Fashion • 50mm</span><span class="pill">Split Tone</span></figcaption></figure>
+      <figure class="shot" data-cat="portrait"><img loading="lazy" alt="Portrait 2" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Portrait • Natural</span><span class="pill">Skin Retouch</span></figcaption></figure>
+      <figure class="shot" data-cat="landscape"><img loading="lazy" alt="Sea" src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Seascape</span><span class="pill">Long Exposure</span></figcaption></figure>
+      <figure class="shot" data-cat="product"><img loading="lazy" alt="Watch" src="https://images.unsplash.com/photo-1524805444758-089113d48a6d?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Product • Macro</span><span class="pill">Dust Clean</span></figcaption></figure>
+      <figure class="shot" data-cat="wedding"><img loading="lazy" alt="Couple" src="https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Wedding • Candid</span><span class="pill">Warm Grade</span></figcaption></figure>
+      <figure class="shot" data-cat="wildlife"><img loading="lazy" alt="Bird" src="https://images.unsplash.com/photo-1501706362039-c06b2d715385?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Wildlife • Bird</span><span class="pill">Feather Detail</span></figcaption></figure>
+      <figure class="shot" data-cat="fashion"><img loading="lazy" alt="Runway" src="https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=1200&auto=format&fit=crop"><figcaption class="meta"><span>Fashion • Runway</span><span class="pill">Contrast Pop</span></figcaption></figure>
+    </div>
+  </section>
+
+  <!-- LIGHTBOX MODAL -->
+  <div class="lightbox" id="lightbox" aria-modal="true" role="dialog">
+    <div class="lightbox-inner">
+      <img id="lightImg" alt="Preview" src=""/>
+      <div class="bar">
+        <div>
+          <button class="btn btn-outline" id="prev">◀ Prev</button>
+          <button class="btn" id="next">Next ▶</button>
+          <button class="btn btn-outline" id="close">✕ Close (Esc)</button>
+        </div>
+        <div class="pill" id="exif">EXIF: —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BEFORE / AFTER -->
+  <section id="beforeafter" class="container">
+    <div class="section-head">
+      <span class="kicker">Retouching</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Before / After Reveal</h2>
+      <p class="subtitle">Drag the handle or use the range to compare. Replace the two images with your originals.</p>
+    </div>
+    <div class="grid" style="grid-template-columns:1.2fr .8fr; gap:1rem">
+      <div class="card" style="padding:1rem" data-reveal>
+        <div class="ba-wrap" id="ba">
+          <img id="imgBefore" alt="Before" src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1600&auto=format&fit=crop">
+          <div class="ba-after" id="baAfter">
+            <img id="imgAfter" alt="After" src="https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?q=80&w=1600&auto=format&fit=crop">
+          </div>
+          <div class="ba-slider" id="baSlider"></div>
+          <div class="ba-handle" id="baHandle" title="Drag"></div>
+        </div>
+        <input class="range" id="baRange" type="range" min="0" max="100" value="50"/>
+      </div>
+      <div class="card" style="padding:1rem" data-reveal>
+        <h3>What changed?</h3>
+        <ul class="subtitle">
+          <li>Skin cleanup while keeping natural texture.</li>
+          <li>Color grading for warmth and mood.</li>
+          <li>Eye clarity and controlled contrast.</li>
+          <li>Background cleanup and gentle vignette.</li>
+        </ul>
+        <p class="subtitle">Tip: Swap the image URLs with your own to showcase your edits.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE PHOTO EDITOR -->
+  <section id="editor" class="container">
+    <div class="section-head">
+      <span class="kicker">Playground</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Live Photo Editor (Client‑Side)</h2>
+      <p class="subtitle">Upload an image, tweak sliders, apply presets, read EXIF, and download your edit — all in the browser.</p>
+    </div>
+    <div class="grid editor-grid" data-reveal>
+      <div class="card" style="padding:1rem">
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center; margin-bottom:.6rem">
+          <input type="file" id="file" accept="image/*"/>
+          <button class="btn" id="applyPreset">Preset: Cinematic</button>
+          <button class="btn btn-outline" id="resetEdit">Reset</button>
+          <button class="btn" id="download">Download JPG</button>
+          <span class="pill" id="exifInfo">EXIF: —</span>
+        </div>
+        <canvas id="canvas" class="editor" width="1200" height="800" aria-label="Photo editor canvas"></canvas>
+      </div>
+      <div class="card" style="padding:1rem">
+        <h3>Adjustments</h3>
+        <div class="controls">
+          <label>Brightness <input type="range" id="brightness" min="0" max="200" value="100"></label>
+          <label>Contrast <input type="range" id="contrast" min="0" max="200" value="110"></label>
+          <label>Saturation <input type="range" id="saturation" min="0" max="200" value="110"></label>
+          <label>Temperature <input type="range" id="temperature" min="-100" max="100" value="0"></label>
+          <label>Tint <input type="range" id="tint" min="-100" max="100" value="0"></label>
+          <label>Clarity (Sharpen) <input type="range" id="sharpen" min="0" max="3" step="0.1" value="0"></label>
+          <label>Vignette <input type="range" id="vignette" min="0" max="100" value="15"></label>
+          <label>Grain <input type="range" id="grain" min="0" max="100" value="0"></label>
+          <label>Blur <input type="range" id="blur" min="0" max="6" step="0.1" value="0"></label>
+          <label>Highlights <input type="range" id="highlights" min="-100" max="100" value="0"></label>
+          <label>Shadows <input type="range" id="shadows" min="-100" max="100" value="0"></label>
+          <label>Sepia <input type="range" id="sepia" min="0" max="100" value="0"></label>
+          <label>BW Mix <input type="range" id="bw" min="0" max="100" value="0"></label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="container">
+    <div class="section-head">
+      <span class="kicker">Simple Plans</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Choose Your Package</h2>
+      <p class="subtitle">Transparent pricing for shoots and post‑processing. Add‑ons available.</p>
+    </div>
+    <div class="grid pricing" data-reveal>
+      <div class="plan card">
+        <h3>Starter Shoot</h3>
+        <div class="price">₹4,999</div>
+        <ul class="subtitle">
+          <li>1‑hour session • 1 location</li>
+          <li>10 edited photos (Hi‑Res)</li>
+          <li>Delivery in 3 days</li>
+        </ul>
+        <button class="btn" onclick="location.href='#booking'">Book Starter</button>
+      </div>
+      <div class="plan card highlight">
+        <div class="pill">Popular</div>
+        <h3>Pro Portrait</h3>
+        <div class="price">₹8,999</div>
+        <ul class="subtitle">
+          <li>2‑hour session • 2 looks</li>
+          <li>25 edited photos + RAWs on request</li>
+          <li>Skin retouching & color grade</li>
+        </ul>
+        <button class="btn" onclick="location.href='#booking'">Book Pro</button>
+      </div>
+      <div class="plan card">
+        <h3>Wedding Day</h3>
+        <div class="price">₹49,999</div>
+        <ul class="subtitle">
+          <li>Full‑day coverage • 2 shooters</li>
+          <li>Curated album (200+ edits)</li>
+          <li>Teaser film add‑on</li>
+        </ul>
+        <button class="btn" onclick="location.href='#booking'">Book Wedding</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials" class="container">
+    <div class="section-head">
+      <span class="kicker">Love Notes</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">What Clients Say</h2>
+      <p class="subtitle">Swipe on mobile • Use ◀ ▶ keys • Auto‑advance</p>
+    </div>
+    <div class="carousel card" aria-roledescription="carousel">
+      <div class="slides" id="slides">
+        <div class="slide">
+          <div style="display:flex; gap:.8rem; align-items:center">
+            <div class="pill">Portrait</div><strong>Aarav K.</strong><span class="subtitle">— Student</span>
+          </div>
+          <p style="margin-top:.6rem">“The edits look premium, skin tones are real, and the mood is cinematic. Parents = impressed!”</p>
+        </div>
+        <div class="slide">
+          <div style="display:flex; gap:.8rem; align-items:center">
+            <div class="pill">Wedding</div><strong>Meera & Vihaan</strong>
+          </div>
+          <p style="margin-top:.6rem">“Beautiful storytelling. We relive the day every time we open the gallery.”</p>
+        </div>
+        <div class="slide">
+          <div style="display:flex; gap:.8rem; align-items:center">
+            <div class="pill">Product</div><strong>Chef’s Table</strong>
+          </div>
+          <p style="margin-top:.6rem">“Crisp, appetizing shots that boosted our menu engagement.”</p>
+        </div>
+      </div>
+      <div style="display:flex; gap:.5rem; justify-content:center; margin:.6rem 0">
+        <button class="btn btn-outline" id="tPrev">◀</button>
+        <button class="btn" id="tNext">▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOG -->
+  <section id="blog" class="container">
+    <div class="section-head">
+      <span class="kicker">Behind the Lens</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Latest Articles</h2>
+      <p class="subtitle">Tips, stories, and color grading recipes.</p>
+    </div>
+    <div class="grid blog" data-reveal>
+      <article class="card" style="overflow:hidden">
+        <img alt="Golden Hour" src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1600&auto=format&fit=crop" style="width:100%; height:220px; object-fit:cover"/>
+        <div style="padding:1rem">
+          <div class="pill">Technique</div>
+          <h3>Golden Hour: The 15‑Minute Rule</h3>
+          <p class="subtitle">Arrive early, meter for skin, and protect highlights — then grade for glow.</p>
+        </div>
+      </article>
+      <article class="card" style="overflow:hidden">
+        <img alt="RAW" src="https://images.unsplash.com/photo-1452587925148-ce544e77e70d?q=80&w=1600&auto=format&fit=crop" style="width:100%; height:220px; object-fit:cover"/>
+        <div style="padding:1rem">
+          <div class="pill">Workflow</div>
+          <h3>RAW → WOW: My Editing Pipeline</h3>
+          <p class="subtitle">From culling to color science: a simple, repeatable process.</p>
+        </div>
+      </article>
+      <article class="card" style="overflow:hidden">
+        <img alt="Composition" src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop" style="width:100%; height:220px; object-fit:cover"/>
+        <div style="padding:1rem">
+          <div class="pill">Creative</div>
+          <h3>Foreground Frames: Instant Depth</h3>
+          <p class="subtitle">Use natural frames and leading lines to guide attention.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- BOOKING -->
+  <section id="booking" class="container">
+    <div class="section-head">
+      <span class="kicker">Let’s Shoot</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Book a Session</h2>
+      <p class="subtitle">Pick your date, tell me your vision, and I’ll reply with availability and a prep guide.</p>
+    </div>
+    <div class="grid" style="grid-template-columns:1.2fr .8fr; gap:1rem">
+      <div class="card" style="padding:1rem" data-reveal>
+        <form id="bookingForm" novalidate>
+          <label>Full Name<input name="name" placeholder="Your name" required minlength="2"/></label>
+          <label>Email<input type="email" name="email" placeholder="you@example.com" required/></label>
+          <label>Phone<input type="tel" name="phone" placeholder="+91‑" pattern="[0-9+\-\s]{8,}" required/></label>
+          <label>Service<select name="service" required>
+            <option value="">Choose…</option>
+            <option>Portrait</option>
+            <option>Fashion</option>
+            <option>Wedding</option>
+            <option>Product</option>
+            <option>Landscape</option>
+          </select></label>
+          <label>Date<input type="date" name="date" required/></label>
+          <label>Message<textarea name="message" rows="4" placeholder="Tell me about the shoot…" required minlength="10"></textarea></label>
+          <button class="btn" type="submit">Request Booking</button>
+          <p id="bookMsg" class="subtitle" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <div class="card" style="padding:1rem" data-reveal>
+        <h3>Why book with me?</h3>
+        <ul class="subtitle">
+          <li>Clear communication and prep guides.</li>
+          <li>Color‑accurate editing tailored to your style.</li>
+          <li>Fast, secure delivery with client‑proofing.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section id="faq" class="container">
+    <div class="section-head">
+      <span class="kicker">Questions</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">FAQ</h2>
+      <p class="subtitle">Everything clients ask before a shoot.</p>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr; gap:1rem" data-reveal>
+      <details open class="card" style="padding:1rem"><summary>How soon do I get my photos?</summary><p class="subtitle">Portrait sets in 3–5 days, weddings in 2–3 weeks (teasers in 48 hours).</p></details>
+      <details class="card" style="padding:1rem"><summary>Do you share RAW files?</summary><p class="subtitle">Yes on Pro+ packages, mainly for education and archiving.</p></details>
+      <details class="card" style="padding:1rem"><summary>What if it rains?</summary><p class="subtitle">We reschedule free of charge or switch to a studio look.</p></details>
+      <details class="card" style="padding:1rem"><summary>Can you match a reference style?</summary><p class="subtitle">Absolutely — bring 3–4 reference images and I’ll align the color palette.</p></details>
+    </div>
+  </section>
+
+  <!-- CONTACT & FOOTER -->
+  <section id="contact" class="container">
+    <div class="section-head">
+      <span class="kicker">Say Hello</span>
+      <h2 class="title" style="font-size:clamp(1.8rem,3.6vw,3rem)">Contact</h2>
+      <p class="subtitle">Email: hello@dakshstudio.example • Instagram: @daksh.studio</p>
+    </div>
+  </section>
+
+  <footer class="container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap">
+      <div class="subtitle">© <span id="year"></span> DAKSH STUDIO — Built with love 💜</div>
+      <div>
+        <a href="#home" class="btn btn-outline">Back to top</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- FLOATERS -->
+  <button class="btn btn-outline to-top" id="toTop" aria-label="Scroll to top">▲</button>
+  <button class="btn theme-toggle" id="themeToggle" aria-label="Toggle theme">🌗</button>
+
+  <script>
+    // ===================== THEME =====================
+    const themeKey='theme-pref-photo-v2'; const themeToggle=document.getElementById('themeToggle');
+    function setTheme(m){document.body.setAttribute('data-theme',m); localStorage.setItem(themeKey,m)}
+    setTheme(localStorage.getItem(themeKey)|| (matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'))
+    themeToggle.addEventListener('click',()=> setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark'))
+
+    // ===================== TYPING =====================
+    const typing=document.getElementById('typing'); const full=typing.textContent.trim(); typing.textContent=''; let i=0; const typer=setInterval(()=>{typing.textContent=full.slice(0,++i); if(i>=full.length) clearInterval(typer)},18)
+
+    // ===================== STARRY BG =====================
+    const canv=document.getElementById('stars'); const ctx=canv.getContext('2d'); let W,H; let stars=[]; const N=180;
+    function resize(){W=canv.width=innerWidth; H=canv.height=innerHeight}
+    addEventListener('resize',resize); resize();
+    function init(){stars=Array.from({length:N},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*2+.2, r:Math.random()*1.8+.4}))}
+    function tick(){ctx.clearRect(0,0,W,H); ctx.globalAlpha=.9; ctx.fillStyle='#fff'; for(const s of stars){ s.x+=s.z*.2; if(s.x>W) s.x=0; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } requestAnimationFrame(tick)}
+    init(); tick();
+
+    // ===================== SCROLL REVEAL =====================
+    const revealers=document.querySelectorAll('[data-reveal]');
+    const ob=new IntersectionObserver(es=>{for(const e of es){ if(e.isIntersecting){ e.target.animate([{transform:'translateY(18px)',opacity:0},{transform:'translateY(0)',opacity:1}],{duration:700,easing:'cubic-bezier(.2,.9,.2,1)',fill:'both'}); ob.unobserve(e.target)}}},{threshold:.12});
+    revealers.forEach(el=>ob.observe(el));
+
+    // ===================== COUNTERS =====================
+    const counters=document.querySelectorAll('[data-counter]');
+    const cob=new IntersectionObserver(es=>{for(const e of es){ if(!e.isIntersecting) continue; const el=e.target; const target=+el.getAttribute('data-counter'); const start=performance.now(); const dur=1200; function anim(t){let p=Math.min(1,(t-start)/dur); el.textContent=Math.floor(p*target); if(p<1) requestAnimationFrame(anim)} requestAnimationFrame(anim); cob.unobserve(el); }} ,{threshold:.6});
+    counters.forEach(el=>cob.observe(el));
+
+    // ===================== PROGRESS + TO TOP =====================
+    const progress=document.getElementById('progress'); const toTop=document.getElementById('toTop');
+    addEventListener('scroll',()=>{const h=document.documentElement; const p=h.scrollTop/(h.scrollHeight-h.clientHeight); progress.style.transform=`scaleX(${p})`; if(h.scrollTop>500) toTop.classList.add('visible'); else toTop.classList.remove('visible');},{passive:true});
+    toTop.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+    // ===================== PORTFOLIO FILTERS =====================
+    const buttons=[...document.querySelectorAll('[data-filter]')]; const grid=document.getElementById('grid');
+    buttons.forEach(b=> b.addEventListener('click',()=>{ const f=b.dataset.filter; document.querySelectorAll('.shot').forEach(s=>{ s.style.display= (f==='all' || s.dataset.cat.includes(f)) ? 'inline-block':'none'; }) }))
+
+    // ===================== LIGHTBOX + EXIF =====================
+    const shots=[...document.querySelectorAll('.shot img')]; const light=document.getElementById('lightbox');
+    const lightImg=document.getElementById('lightImg'); const prev=document.getElementById('prev'); const next=document.getElementById('next'); const close=document.getElementById('close'); const exif=document.getElementById('exif');
+    let idx=0;
+    function open(i){ idx=i; const src=shots[idx].src; lightImg.src=src; light.classList.add('open'); exif.textContent='EXIF: loading…';
+      try{ if(window.EXIF){ EXIF.getData(lightImg, function(){ const data=EXIF.getAllTags(this)||{}; const mm=data.Model||'—'; const ap=data.FNumber? 'ƒ/'+data.FNumber: '—'; const sp=data.ExposureTime? data.ExposureTime+'s':'—'; const iso=data.ISO||'—'; exif.textContent=`EXIF: ${mm} • ${ap} • ${sp} • ISO ${iso}`; }); } else { exif.textContent='EXIF: (not available offline)'; } }catch(err){ exif.textContent='EXIF: —'; }
+    }
+    shots.forEach((img,i)=> img.addEventListener('click',()=>open(i)) )
+    function go(n){ idx=(idx+n+shots.length)%shots.length; open(idx) }
+    prev.addEventListener('click',()=>go(-1)); next.addEventListener('click',()=>go(1)); close.addEventListener('click',()=>light.classList.remove('open'))
+    addEventListener('keydown',e=>{ if(!light.classList.contains('open')) return; if(e.key==='Escape') light.classList.remove('open'); if(e.key==='ArrowRight') go(1); if(e.key==='ArrowLeft') go(-1); })
+
+    // ===================== BEFORE/AFTER SLIDER =====================
+    const ba=document.getElementById('ba'); const baAfter=document.getElementById('baAfter'); const baSlider=document.getElementById('baSlider'); const baHandle=document.getElementById('baHandle'); const baRange=document.getElementById('baRange');
+    function setBA(p){ baAfter.style.width=p+'%'; baSlider.style.left=p+'%'; baHandle.style.left=`calc(${p}% - 18px)`; baRange.value=p }
+    setBA(50);
+    let dragging=false; function pos(e){ const r=ba.getBoundingClientRect(); const x=( (e.touches? e.touches[0].clientX: e.clientX) - r.left)/r.width; return Math.max(0,Math.min(1,x))*100 }
+    ba.addEventListener('mousedown',e=>{dragging=true; setBA(pos(e))}); addEventListener('mousemove',e=>{if(dragging) setBA(pos(e))}); addEventListener('mouseup',()=>dragging=false)
+    ba.addEventListener('touchstart',e=>{dragging=true; setBA(pos(e))},{passive:true}); addEventListener('touchmove',e=>{if(dragging) setBA(pos(e))},{passive:true}); addEventListener('touchend',()=>dragging=false)
+    baRange.addEventListener('input',()=> setBA(+baRange.value))
+
+    // ===================== LIVE EDITOR =====================
+    const file=document.getElementById('file'); const canvas=document.getElementById('canvas'); const cx=canvas.getContext('2d'); let img=new Image(); let loaded=false; let original=null;
+    function loadSample(){ img.crossOrigin='anonymous'; img.src='https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?q=80&w=1600&auto=format&fit=crop'; img.onload=()=>{ canvas.width=img.naturalWidth; canvas.height=img.naturalHeight; cx.drawImage(img,0,0); original=cx.getImageData(0,0,canvas.width,canvas.height); loaded=true; readExifFromBlobUrl(img.src); render() } }
+    loadSample();
+    file.addEventListener('change', async ()=>{ const f=file.files[0]; if(!f) return; const url=URL.createObjectURL(f); img = new Image(); img.onload=()=>{ canvas.width=img.naturalWidth; canvas.height=img.naturalHeight; cx.drawImage(img,0,0); original=cx.getImageData(0,0,canvas.width,canvas.height); loaded=true; readExifFromFile(f); render(); URL.revokeObjectURL(url); }; img.src=url; });
+
+    // EXIF helpers
+    const exifInfo=document.getElementById('exifInfo');
+    function readExifFromFile(f){ try{ if(window.EXIF){ EXIF.getData(f, function(){ const d=EXIF.getAllTags(this)||{}; exifInfo.textContent=formatEXIF(d); }); } else { exifInfo.textContent='EXIF: (offline)'; } }catch(e){ exifInfo.textContent='EXIF: —' } }
+    function readExifFromBlobUrl(){ exifInfo.textContent='EXIF: Sample image'; }
+    function formatEXIF(d){ const mm=d.Model||'—'; const ap=d.FNumber? 'ƒ/'+d.FNumber: '—'; const sp=d.ExposureTime? d.ExposureTime+'s':'—'; const iso=d.ISO||'—'; return `EXIF: ${mm} • ${ap} • ${sp} • ISO ${iso}` }
+
+    // Controls
+    const controls=['brightness','contrast','saturation','temperature','tint','sharpen','vignette','grain','blur','highlights','shadows','sepia','bw'].reduce((o,id)=> (o[id]=document.getElementById(id),o),{})
+    for(const k in controls){ controls[k].addEventListener('input',()=> render()) }
+    document.getElementById('resetEdit').addEventListener('click',()=>{ controls.brightness.value=100; controls.contrast.value=110; controls.saturation.value=110; controls.temperature.value=0; controls.tint.value=0; controls.sharpen.value=0; controls.vignette.value=15; controls.grain.value=0; controls.blur.value=0; controls.highlights.value=0; controls.shadows.value=0; controls.sepia.value=0; controls.bw.value=0; render() })
+    document.getElementById('applyPreset').addEventListener('click',()=>{ controls.brightness.value=105; controls.contrast.value=120; controls.saturation.value=115; controls.temperature.value=10; controls.tint.value=-5; controls.sharpen.value=1; controls.vignette.value=22; controls.grain.value=8; controls.blur.value=0.2; controls.highlights.value=-18; controls.shadows.value=18; controls.sepia.value=10; controls.bw.value=0; render() })
+    document.getElementById('download').addEventListener('click',()=>{ const link=document.createElement('a'); link.download='daksh-edit.jpg'; link.href=canvas.toDataURL('image/jpeg',.92); link.click() })
+
+    function render(){ if(!loaded||!original) return; cx.putImageData(original,0,0); let filter=`brightness(${controls.brightness.value}%) contrast(${controls.contrast.value}%) saturate(${controls.saturation.value}%) blur(${controls.blur.value}px) sepia(${controls.sepia.value}%) grayscale(${controls.bw.value}%)`;
+      canvas.style.filter=filter; // CSS filter for preview speed
+      // Extra effects drawn over canvas (vignette, temperature/tint, highlights/shadows, sharpen, grain)
+      // Draw a copy for additive effects
+      const w=canvas.width, h=canvas.height; const imgData=cx.getImageData(0,0,w,h); const d=imgData.data;
+      // highlights/shadows + temp/tint
+      const hl=+controls.highlights.value, sh=+controls.shadows.value, temp=+controls.temperature.value, tint=+controls.tint.value;
+      for(let i=0;i<d.length;i+=4){ let r=d[i], g=d[i+1], b=d[i+2];
+        // highlights/shadows: simple curve
+        const lum=.2126*r+.7152*g+.0722*b; const hlc = 1 + (hl/200); const shc = 1 + (sh/200);
+        const f = lum>128? hlc: shc; r*=f; g*=f; b*=f;
+        // temperature/tint (blue/orange, green/magenta)
+        r += temp*0.6; b -= temp*0.6; g += tint*-0.4; r += tint*0.4;
+        d[i]=r; d[i+1]=g; d[i+2]=b;
+      }
+      cx.putImageData(imgData,0,0);
+      // sharpen (simple kernel)
+      const s=+controls.sharpen.value; if(s>0){ const wt=[0,-s,0,-s,1+4*s,-s,0,-s,0]; conv(wt) }
+      function conv(wt){ const src=cx.getImageData(0,0,w,h); const sd=src.data; const out=cx.createImageData(w,h); const od=out.data; const k=[-1,0,1,-w,0,w,-w-1,-w+1,w-1,w+1];
+        for(let y=1;y<h-1;y++) for(let x=1;x<w-1;x++){ for(let c=0;c<3;c++){ let i=(y*w+x)*4+c; let v= sd[i]*wt[4] + sd[i-4]*wt[3] + sd[i+4]*wt[5] + sd[i-w*4]*wt[1] + sd[i+w*4]*wt[7] + sd[i-4-w*4]*wt[0] + sd[i+4-w*4]*wt[2] + sd[i-4+w*4]*wt[6] + sd[i+4+w*4]*wt[8]; od[(y*w+x)*4+c]=v } od[(y*w+x)*4+3]=255 }
+        cx.putImageData(out,0,0)
+      }
+      // vignette & grain overlay
+      const gctx=cx; gctx.save(); gctx.globalCompositeOperation='multiply'; const grd=gctx.createRadialGradient(w/2,h/2,Math.min(w,h)/6,w/2,h/2,Math.max(w,h)/1.2); grd.addColorStop(0,'rgba(0,0,0,0)'); grd.addColorStop(1,`rgba(0,0,0,${controls.vignette.value/140})`); gctx.fillStyle=grd; gctx.fillRect(0,0,w,h); gctx.restore();
+      const grain=+controls.grain.value; if(grain>0){ const n=cx.getImageData(0,0,w,h); const nd=n.data; for(let i=0;i<nd.length;i+=4){ const noise=(Math.random()-0.5)*grain; nd[i]+=noise; nd[i+1]+=noise; nd[i+2]+=noise; } cx.putImageData(n,0,0); }
+    }
+
+    // ===================== TESTIMONIALS CAROUSEL =====================
+    const slides=document.getElementById('slides'); const tPrev=document.getElementById('tPrev'); const tNext=document.getElementById('tNext'); let ti=0; function tgo(i){ const total=slides.children.length; ti=(i+total)%total; slides.style.transform=`translateX(-${ti*100}%)` }
+    tPrev.addEventListener('click',()=>tgo(ti-1)); tNext.addEventListener('click',()=>tgo(ti+1)); let auto=setInterval(()=>tgo(ti+1),4000); [tPrev,tNext,slides].forEach(el=> el.addEventListener('mouseenter',()=> clearInterval(auto)))
+
+    // ===================== BOOKING FORM =====================
+    const bookingForm=document.getElementById('bookingForm'); const bookMsg=document.getElementById('bookMsg');
+    bookingForm.addEventListener('submit',e=>{ e.preventDefault(); const d=new FormData(bookingForm); const name=d.get('name').trim(); const email=d.get('email').trim(); const phone=d.get('phone').trim(); const service=d.get('service'); const date=d.get('date'); const msg=d.get('message').trim();
+      if(name.length<2) return show('Please enter your full name.');
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return show('Please enter a valid email.');
+      if(phone.length<8) return show('Please enter a valid phone.');
+      if(!service) return show('Please choose a service.');
+      if(!date) return show('Please pick a date.');
+      if(msg.length<10) return show('Please add a short message.');
+      show('Request sent! (Demo only — check console)'); console.log('Booking Request →', Object.fromEntries(d.entries())); bookingForm.reset();
+      function show(t){ bookMsg.textContent=t; bookMsg.style.color='var(--primary)'; }
+    })
+
+    // ===================== YEAR =====================
+    document.getElementById('year').textContent=new Date().getFullYear()
+  </script>
+</body>
+</html>
